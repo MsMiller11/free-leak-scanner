@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Free Email Data Breach Checker | Instant & Private</title>
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { margin: 0; background: #f4f7fb; color: #1e293b; display: flex; justify-content: center; padding: 30px 16px; }
+    .container { max-width: 640px; width: 100%; background: #ffffff; padding: 32px 24px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.06); }
+    h1 { font-size: 1.85rem; margin: 0 0 10px; color: #0f172a; text-align: center; }
+    .subtitle { text-align: center; color: #475569; font-size: 1.05rem; margin-bottom: 24px; line-height: 1.5; }
+    .search-box { display: flex; gap: 10px; flex-wrap: wrap; }
+    input[type="email"] { flex: 1; min-width: 220px; padding: 14px 16px; font-size: 1.05rem; border: 2px solid #cbd5e1; border-radius: 10px; outline: none; }
+    input[type="email"]:focus { border-color: #2563eb; }
+    button { padding: 14px 24px; font-size: 1.05rem; font-weight: 600; background: #2563eb; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    button:disabled { background: #94a3b8; cursor: not-allowed; }
+    .privacy-note { font-size: 0.88rem; color: #64748b; text-align: center; margin-top: 12px; }
+    .result-card { margin-top: 28px; padding: 22px; border-radius: 12px; display: none; }
+    .safe { background: #ecfdf5; border: 2px solid #10b981; color: #065f46; }
+    .danger { background: #fef2f2; border: 2px solid #ef4444; color: #991b1b; }
+    .error { background: #fffbeb; border: 2px solid #f59e0b; color: #92400e; }
+    .result-title { font-size: 1.3rem; font-weight: 700; margin: 0 0 8px; }
+    .breach-tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+    .tag { background: #fee2e2; border: 1px solid #fca5a5; color: #7f1d1d; padding: 6px 12px; border-radius: 999px; font-weight: 600; font-size: 0.92rem; }
+    .checklist { background: #ffffff; color: #1e293b; padding: 16px; border-radius: 10px; margin-top: 16px; border: 1px solid #e2e8f0; }
+    .checklist h3 { margin: 0 0 10px; font-size: 1.05rem; }
+    .checklist label { display: block; margin-bottom: 8px; font-size: 0.96rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Was Your Email Leaked in a Data Breach?</h1>
+    <p class="subtitle">Check over 11.7 billion exposed records in 3 seconds. No sign-up required.</p>
+
+    <form class="search-box" id="breachForm">
+      <input type="email" id="emailInput" placeholder="Enter your email address..." required />
+      <button type="submit" id="checkBtn">Check Now</button>
+    </form>
+    <p class="privacy-note">🔒 100% Private: Your search runs directly in your browser. We never save or log your email.</p>
+
+    <div id="resultBox" class="result-card"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('breachForm');
+    const emailInput = document.getElementById('emailInput');
+    const checkBtn = document.getElementById('checkBtn');
+    const resultBox = document.getElementById('resultBox');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = emailInput.value.trim();
+      if (!email) return;
+
+      checkBtn.disabled = true;
+      checkBtn.textContent = 'Scanning...';
+      resultBox.style.display = 'none';
+
+      try {
+        const response = await fetch(`https://xposedornot.com{encodeURIComponent(email)}`);
+        
+        if (response.status === 404) {
+          showSafe(email);
+        } else if (response.status === 429) {
+          showError('Too many checks right now. Please wait 60 seconds and try again.');
+        } else if (!response.ok) {
+          showError('Unable to reach the breach database right now. Please try again in a moment.');
+        } else {
+          const data = await response.json();
+          if (data.Error || !data.breaches || !data.breaches[0] || data.breaches[0].length === 0) {
+            showSafe(email);
+          } else {
+            showDanger(email, data.breaches[0]);
+          }
+        }
+      } catch (err) {
+        showError('Connection error. Please check your internet and try again.');
+      } finally {
+        checkBtn.disabled = false;
+        checkBtn.textContent = 'Check Now';
+      }
+    });
+
+    function showSafe(email) {
+      resultBox.className = 'result-card safe';
+      resultBox.innerHTML = `
+        <div class="result-title">✅ Good News: 0 Breaches Found</div>
+        <p><strong>${escapeHtml(email)}</strong> did not appear in any known public data breaches.</p>
+        <div class="checklist">
+          <h3>Keep Your Account Safe:</h3>
+          <label><input type="checkbox" /> Use a unique password for your main email account</label>
+          <label><input type="checkbox" /> Turn on 2-step verification (2FA) for banking and email</label>
+        </div>
+      `;
+      resultBox.style.display = 'block';
+    }
+
+    function showDanger(email, breaches) {
+      const tagsHtml = breaches.map(site => `<span class="tag">${escapeHtml(site)}</span>`).join('');
+      resultBox.className = 'result-card danger';
+      resultBox.innerHTML = `
+        <div class="result-title">⚠️ Alert: Found in ${breaches.length} Data Breach${breaches.length > 1 ? 'es' : ''}</div>
+        <p><strong>${escapeHtml(email)}</strong> was exposed on the following website${breaches.length > 1 ? 's' : ''}:</p>
+        <div class="breach-tags">${tagsHtml}</div>
+        <div class="checklist">
+          <h3>Your 3-Step Fix-It Checklist:</h3>
+          <label><input type="checkbox" /> <strong>Step 1:</strong> Change your password on the breached site(s) listed above immediately.</label>
+          <label><input type="checkbox" /> <strong>Step 2:</strong> If you reused that same password anywhere else (especially your email or bank), change it there too.</label>
+          <label><input type="checkbox" /> <strong>Step 3:</strong> Turn on Two-Factor Authentication (text or app code) so hackers cannot log in even with your password.</label>
+        </div>
+      `;
+      resultBox.style.display = 'block';
+    }
+
+    function showError(msg) {
+      resultBox.className = 'result-card error';
+      resultBox.innerHTML = `<div class="result-title">⏳ Notice</div><p>${msg}</p>`;
+      resultBox.style.display = 'block';
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
